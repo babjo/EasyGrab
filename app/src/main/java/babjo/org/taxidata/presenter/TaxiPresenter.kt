@@ -11,9 +11,10 @@ import babjo.org.taxidata.view.MainView
  * Created by LCH on 2016. 10. 27..
  */
 
-class TaxiPresenter(val getTaxiDataNearMeUseCase: GetTaxiDataNearMeUseCase, val mainView : MainView) : Presenter{
+class TaxiPresenter(val getTaxiDataNearMeUseCase: GetTaxiDataNearMeUseCase) : Presenter{
 
     private val TAG = TaxiPresenter::class.simpleName
+    lateinit var mMainView : MainView
 
     override fun pause() {
     }
@@ -26,15 +27,15 @@ class TaxiPresenter(val getTaxiDataNearMeUseCase: GetTaxiDataNearMeUseCase, val 
     }
 
     fun searchTaxiNearMe(longitude: Double, latitude: Double) {
-        mainView.onPreSearchTaxiOn()
+        mMainView.onPreSearchTaxiOn()
         getTaxiDataNearMeUseCase.execute(GetTaxiDataNearMeRequest(longitude, latitude, 0.2),
                 object : DefaultSubscriber<GetTaxiDataNearMeResponse>() {
                     override fun onNext(o: GetTaxiDataNearMeResponse) {
                         Log.d(TAG, ""+o.data.resultList.size)
-                        mainView.onPostSearchTaxiOn(o.data.resultList)
+                        mMainView.onPostSearchTaxiOn(o.data.resultList)
                     }
                     override fun onError(e: Throwable) {
-                        mainView.onErrorSearchTaxiOn(e)
+                        mMainView.onErrorSearchTaxiOn(e)
                     }
             })
     }
