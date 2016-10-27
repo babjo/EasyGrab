@@ -1,9 +1,14 @@
 package babjo.org.taxidata.view
 
+import android.Manifest
+import android.app.Activity
+import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
 import android.support.design.widget.FloatingActionButton
+import android.support.v4.app.ActivityCompat
+import android.support.v4.content.ContextCompat
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.View
@@ -11,7 +16,7 @@ import android.view.ViewGroup
 import android.widget.ProgressBar
 import android.widget.RelativeLayout
 import android.widget.Toast
-import babjo.org.taxidata.MapApiConst
+import babjo.org.taxidata.Const
 import babjo.org.taxidata.R
 import babjo.org.taxidata.api.GetTaxiData
 import babjo.org.taxidata.api.Point
@@ -25,8 +30,12 @@ class MainActivity : AppCompatActivity(),
     private val TAG = MainActivity::class.simpleName
     private var mMapView: MapView? = null
     private var mProgressBar: ProgressBar? = null
+    private var mFloatingBtn: FloatingActionButton? = null
+
     private var isTracking: Boolean = false
     private var mTaxiPresenter: TaxiPresenter? = null
+    private val REQUEST_TRACKING = 0
+    private val REQUEST_SEARCHING = 1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,7 +44,7 @@ class MainActivity : AppCompatActivity(),
         val mapLayout = MapLayout(this)
         mMapView = mapLayout.mapView
 
-        mMapView?.setDaumMapApiKey(MapApiConst.DAUM_MAPS_ANDROID_APP_API_KEY)
+        mMapView?.setDaumMapApiKey(Const.DAUM_MAPS_ANDROID_APP_API_KEY)
         mMapView?.setOpenAPIKeyAuthenticationResultListener(DefaultOpenAPIKeyAuthenticationResultListener())
         mMapView?.setMapViewEventListener(this)
         mMapView?.setCurrentLocationEventListener(this)
@@ -45,37 +54,64 @@ class MainActivity : AppCompatActivity(),
         mapViewContainer.addView(mapLayout)
 
         mProgressBar = findViewById(R.id.progress) as ProgressBar
-        val fab = findViewById(R.id.fab) as FloatingActionButton
-        fab.setOnClickListener {
-            if(isTracking) {
-                trackingModeOff()
-                fab.setImageDrawable(resources.getDrawable(R.drawable.ic_gps_fixed_black_36dp))
-                fab.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
-                isTracking = false
-                mProgressBar?.visibility = View.INVISIBLE
-            }
-            else {
-                trackingModeOn()
-                fab.setImageDrawable(resources.getDrawable(R.drawable.ic_gps_fixed_white_36dp))
-                fab.backgroundTintList = ColorStateList.valueOf(Color.parseColor(resources.getString(R.color.colorAccent)))
-                isTracking = true
-                mProgressBar?.visibility = View.VISIBLE
-            }
+        mFloatingBtn = findViewById(R.id.fab) as FloatingActionButton
+
+        mFloatingBtn?.setOnClickListener {
+            checkGPSPermission(this, REQUEST_TRACKING, {
+                switchTracking()
+            })
         }
 
         mTaxiPresenter = TaxiPresenter(GetTaxiDataNearMeUseCase(), this)
 
         val searchCntOnView = findViewById(R.id.searchTaxiNearMe) as RelativeLayout
         searchCntOnView.setOnClickListener {
-            mTaxiPresenter?.searchTaxiNearMe(mMapView?.mapCenterPoint!!.mapPointGeoCoord.longitude, mMapView?.mapCenterPoint!!.mapPointGeoCoord.latitude)
+            checkGPSPermission(this, REQUEST_SEARCHING, {mTaxiPresenter?.searchTaxiNearMe(mMapView?.mapCenterPoint!!.mapPointGeoCoord.longitude, mMapView?.mapCenterPoint!!.mapPointGeoCoord.latitude)})
         }
 
+    }
+
+    private fun switchTracking() {
+        if (isTracking) {
+            trackingModeOff()
+            mFloatingBtn?.setImageDrawable(resources.getDrawable(R.drawable.ic_gps_fixed_black_36dp))
+            mFloatingBtn?.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
+            isTracking = false
+            mProgressBar?.visibility = View.INVISIBLE
+        } else {
+            trackingModeOn()
+            mFloatingBtn?.setImageDrawable(resources.getDrawable(R.drawable.ic_gps_fixed_white_36dp))
+            mFloatingBtn?.backgroundTintList = ColorStateList.valueOf(Color.parseColor(resources.getString(R.color.colorAccent)))
+            isTracking = true
+            mProgressBar?.visibility = View.VISIBLE
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
         trackingModeOff()
         mTaxiPresenter?.destroy()
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        when (requestCode) {
+            REQUEST_TRACKING -> {
+                if (grantResults.size > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    switchTracking()
+                } else {
+                    Toast.makeText(this, "GPS 권한을 획득하지 못했습니다. 기능 사용을 위해 권한을 설정해주세요.", Toast.LENGTH_LONG).show();
+                }
+                return
+            }
+            REQUEST_SEARCHING ->{
+                if (grantResults.size > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    mTaxiPresenter?.searchTaxiNearMe(mMapView?.mapCenterPoint!!.mapPointGeoCoord.longitude, mMapView?.mapCenterPoint!!.mapPointGeoCoord.latitude)
+                } else {
+                    Toast.makeText(this, "GPS 권한을 획득하지 못했습니다. 기능 사용을 위해 권한을 설정해주세요.",Toast.LENGTH_LONG).show();
+                }
+                return
+            }
+        }
     }
 
 
@@ -163,5 +199,26 @@ class MainActivity : AppCompatActivity(),
         }
         points.forEach { polyline.addPoint(MapPoint.mapPointWithGeoCoord(it.y, it.x)) }
         return polyline
+    }
+
+    fun checkGPSPermission(activity: Activity, requestCode: Int, callback: () -> Unit) {
+        // Here, thisActivity is the current activity
+        if (ContextCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // Should we show an explanation?
+            if (ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.ACCESS_FINE_LOCATION)) {
+                // Show an expanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+                ActivityCompat.requestPermissions(activity, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), requestCode)
+            } else {
+                // No explanation needed, we can request the permission.
+                ActivityCompat.requestPermissions(activity, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), requestCode)
+                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
+                // app-defined int constant. The callback method gets the
+                // result of the request.
+            }
+        } else {
+            callback()
+        }
     }
 }
