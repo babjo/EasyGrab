@@ -7,8 +7,7 @@ import babjo.org.taxidata.api.GetTaxiData
  */
 
 interface MainView {
-    fun onPostSearchCntOn(resultList: Array<GetTaxiData>?)
-    fun onPreSearchCntOn()
-    fun onPostSearchCntOff(resultList: Array<GetTaxiData>?)
-    fun onPreSearchCntOff()
+    fun onPostSearchTaxiOn(resultList: Array<GetTaxiData>)
+    fun onPreSearchTaxiOn()
+    fun onErrorSearchTaxiOn(e: Throwable)
 }

@@ -5,21 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
-    tools:context="babjo.org.taxidata.MainActivity">
-
-    <!--<android.support.design.widget.AppBarLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:theme="@style/AppTheme.AppBarOverlay">
-
-        <android.support.v7.widget.Toolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorPrimary"
-            app:popupTheme="@style/AppTheme.PopupOverlay" />
-
-    </android.support.design.widget.AppBarLayout>-->
+    tools:context="babjo.org.taxidata.view.MainActivity">
 
     <include layout="@layout/content_main" />
 
@@ -57,11 +43,12 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:background="@android:color/white"
-            android:elevation="20dp"
+            android:elevation="30dp"
             android:clickable="true"
+            android:showDividers="middle"
             >
             <RelativeLayout
-                android:id="@+id/searchCntOnNearMe"
+                android:id="@+id/searchTaxiNearMe"
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
@@ -85,36 +72,7 @@
                         android:layout_height="40dp"
                         android:layout_marginLeft="@dimen/activity_vertical_margin"
                         android:gravity="center_vertical"
-                        android:text="이 위치에서 주변 승차횟수 탐색"
-                        />
-                </LinearLayout>
-            </RelativeLayout>
-            <RelativeLayout
-                android:id="@+id/searchCntOffNearMe"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:background="?android:selectableItemBackground"
-                >
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:paddingLeft="@dimen/activity_vertical_margin"
-                    android:paddingRight="@dimen/activity_vertical_margin"
-                    android:layout_centerInParent="true"
-                    >
-                    <ImageView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:src="@drawable/ic_directions_car_black_24dp"
-                        android:layout_gravity="center_vertical"
-                        />
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="40dp"
-                        android:layout_marginLeft="@dimen/activity_vertical_margin"
-                        android:gravity="center_vertical"
-                        android:text="이 위치에서 주변 하차횟수 탐색"
+                        android:text="이 곳에서 택시 타기 좋은 위치 탐색"
                         />
                 </LinearLayout>
             </RelativeLayout>

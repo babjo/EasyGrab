@@ -25,25 +25,17 @@ class TaxiPresenter(val getTaxiDataNearMeUseCase: GetTaxiDataNearMeUseCase, val 
     override fun resume() {
     }
 
-    fun searchCntOn(longitude: Double, latitude: Double) {
-        mainView.onPreSearchCntOn()
-        getTaxiDataNearMeUseCase.execute(GetTaxiDataNearMeRequest(longitude, latitude, 0.1),
+    fun searchTaxiNearMe(longitude: Double, latitude: Double) {
+        mainView.onPreSearchTaxiOn()
+        getTaxiDataNearMeUseCase.execute(GetTaxiDataNearMeRequest(longitude, latitude, 0.2),
                 object : DefaultSubscriber<GetTaxiDataNearMeResponse>() {
                     override fun onNext(o: GetTaxiDataNearMeResponse) {
                         Log.d(TAG, ""+o.data.resultList.size)
-                        mainView.onPostSearchCntOn(o.data.resultList)
+                        mainView.onPostSearchTaxiOn(o.data.resultList)
+                    }
+                    override fun onError(e: Throwable) {
+                        mainView.onErrorSearchTaxiOn(e)
                     }
             })
-    }
-
-    fun  searchCntOff(longitude: Double, latitude: Double) {
-        mainView.onPreSearchCntOff()
-        getTaxiDataNearMeUseCase.execute(GetTaxiDataNearMeRequest(longitude, latitude, 0.1),
-                object : DefaultSubscriber<GetTaxiDataNearMeResponse>() {
-                    override fun onNext(o: GetTaxiDataNearMeResponse) {
-                        Log.d(TAG, "" + o.data.resultList.size)
-                        mainView.onPostSearchCntOn(o.data.resultList)
-                    }
-                })
     }
 }

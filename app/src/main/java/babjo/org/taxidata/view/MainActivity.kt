@@ -1,4 +1,4 @@
-package babjo.org.taxidata
+package babjo.org.taxidata.view
 
 import android.content.res.ColorStateList
 import android.graphics.Color
@@ -10,22 +10,23 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ProgressBar
 import android.widget.RelativeLayout
+import android.widget.Toast
+import babjo.org.taxidata.MapApiConst
+import babjo.org.taxidata.R
 import babjo.org.taxidata.api.GetTaxiData
 import babjo.org.taxidata.api.Point
 import babjo.org.taxidata.presenter.TaxiPresenter
 import babjo.org.taxidata.usecase.GetTaxiDataNearMeUseCase
-import babjo.org.taxidata.view.MainView
 import net.daum.mf.map.api.*
-import java.util.*
 
 class MainActivity : AppCompatActivity(),
-        MapView.OpenAPIKeyAuthenticationResultListener,
         MapView.MapViewEventListener, MapView.CurrentLocationEventListener, MainView {
 
     private val TAG = MainActivity::class.simpleName
     private var mMapView: MapView? = null
     private var mProgressBar: ProgressBar? = null
     private var isTracking: Boolean = false
+    private var mTaxiPresenter: TaxiPresenter? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,7 +36,7 @@ class MainActivity : AppCompatActivity(),
         mMapView = mapLayout.mapView
 
         mMapView?.setDaumMapApiKey(MapApiConst.DAUM_MAPS_ANDROID_APP_API_KEY)
-        mMapView?.setOpenAPIKeyAuthenticationResultListener(this)
+        mMapView?.setOpenAPIKeyAuthenticationResultListener(DefaultOpenAPIKeyAuthenticationResultListener())
         mMapView?.setMapViewEventListener(this)
         mMapView?.setCurrentLocationEventListener(this)
         mMapView?.mapType = MapView.MapType.Standard
@@ -62,16 +63,11 @@ class MainActivity : AppCompatActivity(),
             }
         }
 
-        val taxiPresenter = TaxiPresenter(GetTaxiDataNearMeUseCase(), this)
+        mTaxiPresenter = TaxiPresenter(GetTaxiDataNearMeUseCase(), this)
 
-        val searchCntOnView = findViewById(R.id.searchCntOnNearMe) as RelativeLayout
+        val searchCntOnView = findViewById(R.id.searchTaxiNearMe) as RelativeLayout
         searchCntOnView.setOnClickListener {
-            taxiPresenter.searchCntOn(mMapView?.mapCenterPoint!!.mapPointGeoCoord.longitude, mMapView?.mapCenterPoint!!.mapPointGeoCoord.latitude)
-        }
-
-        val searchCntOffView = findViewById(R.id.searchCntOffNearMe) as RelativeLayout
-        searchCntOffView.setOnClickListener {
-            taxiPresenter.searchCntOff(mMapView?.mapCenterPoint!!.mapPointGeoCoord.longitude, mMapView?.mapCenterPoint!!.mapPointGeoCoord.latitude)
+            mTaxiPresenter?.searchTaxiNearMe(mMapView?.mapCenterPoint!!.mapPointGeoCoord.longitude, mMapView?.mapCenterPoint!!.mapPointGeoCoord.latitude)
         }
 
     }
@@ -79,6 +75,7 @@ class MainActivity : AppCompatActivity(),
     override fun onDestroy() {
         super.onDestroy()
         trackingModeOff()
+        mTaxiPresenter?.destroy()
     }
 
 
@@ -111,23 +108,19 @@ class MainActivity : AppCompatActivity(),
         removeAllAndAddCircle(mapPoint)
     }
 
-    var previousCircle : MapCircle? = null
     private fun removeAllAndAddCircle(mapPoint: MapPoint?) {
-        if(previousCircle != null) mMapView?.removeCircle(previousCircle)
-        previousCircle = MapCircle(
+        mMapView?.removeAllCircles()
+        mMapView?.addCircle(MapCircle(
                 mapPoint, // center
                 10, // radius
                 Color.argb(128, 0, 255, 0), // strokeColor
                 Color.argb(128, 0, 255, 0) // fillColor
-        )
-        mMapView?.addCircle(previousCircle)
+        ))
     }
 
     override fun onMapViewLongPressed(p0: MapView?, p1: MapPoint?) {
     }
-    override fun onDaumMapOpenAPIKeyAuthenticationResult(mapView: MapView?, resultCode : Int, resultMessage: String?) {
-        Log.i(TAG, "Open API Key Authentication Result : code=$resultCode, message=$resultMessage")
-    }
+
 
     override fun onCurrentLocationUpdateFailed(mapView: MapView?) {
     }
@@ -145,41 +138,29 @@ class MainActivity : AppCompatActivity(),
         removeAllAndAddCircle(currentLocation)
     }
 
-    val previousPolylineList : ArrayList<MapPolyline> = arrayListOf()
-    override fun onPreSearchCntOn() {
-        previousPolylineList.forEach { mMapView?.removePolyline(it) }
-        previousPolylineList.clear()
+    override fun onPreSearchTaxiOn() {
+        mMapView?.removeAllPolylines()
     }
 
-    override fun onPostSearchCntOn(resultList: Array<GetTaxiData>?) {
-        resultList?.forEach {
-            val polyline = createPolyline(it.points)
-            previousPolylineList.add(polyline)
-            mMapView?.addPolyline(polyline)
-            //println(it.points.size)
-            //println(it.cntOn)
-            //println(it.cntOff)*/
+    override fun onPostSearchTaxiOn(resultList: Array<GetTaxiData>) {
+        resultList.sortByDescending { it.cntOn + it.cntOff }
+        Log.d(TAG, "Searched TaxiData is a total ${resultList.size}")
+        resultList.take(24).forEachIndexed { i, taxiData ->
+            mMapView?.addPolyline(createPolyline(taxiData.points, i))
         }
+
     }
 
-    override fun onPreSearchCntOff() {
-        onPreSearchCntOn()
+    override fun onErrorSearchTaxiOn(e: Throwable) {
+        Toast.makeText(this, "서버와 통신에서 오류가 발생했습니다. 잠시후 이용해주세요.", Toast.LENGTH_LONG).show()
     }
 
-    override fun onPostSearchCntOff(resultList: Array<GetTaxiData>?) {
-        resultList?.forEach {
-            val polyline = createPolyline(it.points)
-            previousPolylineList.add(polyline)
-            mMapView?.addPolyline(polyline)
-            //println(it.points.size)
-            //println(it.cntOn)
-            //println(it.cntOff)*/
-        }
-    }
-
-    private fun createPolyline(points : Array<Point>) : MapPolyline {
+    private fun createPolyline(points : Array<Point>, num: Int) : MapPolyline {
         val polyline = MapPolyline()
-        polyline.lineColor = Color.argb(Random().nextInt(255), Random().nextInt(255), Random().nextInt(255), 0)
+        when(num){
+            in 0..12 -> polyline.lineColor = Color.rgb(num * 20, 255, 0)
+            in 13..24 -> polyline.lineColor = Color.rgb(255, 255 - (num - 20) * 15, 0)
+        }
         points.forEach { polyline.addPoint(MapPoint.mapPointWithGeoCoord(it.y, it.x)) }
         return polyline
     }
