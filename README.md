@@ -22,4 +22,8 @@
     - presenter : Presenter 레이어
     - view : View 레이어 (안드로이드 액티비티, 뷰 컴포넌트)
     
-## 서버측
+## 구성도
+![architecture](./img/architecture.png)
+
+- API 서버 : https://github.com/babjo/TaxiDataApi
+- 클라이언트 : https://github.com/babjo/TaxiDataAndroid
