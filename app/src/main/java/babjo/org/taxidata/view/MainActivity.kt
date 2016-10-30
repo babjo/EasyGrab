@@ -11,6 +11,7 @@ import android.support.v4.content.ContextCompat
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.View
+import android.view.WindowManager
 import android.widget.Toast
 import babjo.org.taxidata.Const
 import babjo.org.taxidata.R
@@ -19,7 +20,6 @@ import babjo.org.taxidata.api.GetTaxiData
 import babjo.org.taxidata.presenter.TaxiPresenter
 import babjo.org.taxidata.view.component.TaxiMap
 import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.android.synthetic.main.content_main.*
 import net.daum.mf.map.api.MapLayout
 import javax.inject.Inject
 
@@ -34,6 +34,7 @@ class MainActivity : AppCompatActivity(), MainView {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        setStatusBarTranslucent(true)
         TaxiDataApp.appComponent.inject(this)
 
         val mapLayout = MapLayout(this)
@@ -109,15 +110,27 @@ class MainActivity : AppCompatActivity(), MainView {
     }
 
     override fun onPostSearchTaxiOn(resultList: Array<GetTaxiData>) {
-        resultList.sortByDescending { it.cntOn + it.cntOff }
-        Log.d(TAG, "Searched TaxiData is a total ${resultList.size}")
-        resultList.take(24).forEachIndexed { i, taxiData ->
-            mTaxiMap.addPolyline(taxiData.points, i)
+        if(resultList.size == 0)
+            Toast.makeText(this, Const.USE_CASE_SEARCH_TAXI_NO_RESULT, Toast.LENGTH_LONG).show()
+        else {
+            resultList.sortByDescending { it.cntOn + it.cntOff }
+            Log.d(TAG, "Searched TaxiData is a total ${resultList.size}")
+            resultList.take(24).forEachIndexed { i, taxiData ->
+                mTaxiMap.addPolyline(taxiData.points, i)
+            }
         }
 
     }
 
     override fun onErrorSearchTaxiOn(e: Throwable) {
         Toast.makeText(this, Const.USE_CASE_SEARCH_TAXI_EXCEPTION_MSG, Toast.LENGTH_LONG).show()
+    }
+
+    protected fun setStatusBarTranslucent(makeTranslucent: Boolean) {
+        if (makeTranslucent) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
+        } else {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
+        }
     }
 }

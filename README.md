@@ -1,4 +1,4 @@
-# 택시 타기 좋은 위치 | 손님 태우기 좋은 위치
+# EASYGRAB
 서울시 택시운행 데이터를 분석하여 사용자는 택시 타기 좋은 위치, 운전사는 손님 태우기 좋은 위치를 탐색하는 앱니다. :)
 (2015/01 ~ 2016/04 서울시 택시운행 데이터 기준) 
 
@@ -29,5 +29,5 @@
 ## 구성도
 ![architecture](./img/architecture.png)
 
-- API 서버 : https://github.com/babjo/TaxiDataApi
-- 클라이언트 : https://github.com/babjo/TaxiDataAndroid
+- API 서버 : https://github.com/babjo/EasyGrabApi
+- 클라이언트 : https://github.com/babjo/EasyGrab
